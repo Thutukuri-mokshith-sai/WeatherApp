@@ -1,13 +1,15 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+/* index.css */
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* 1. Tailwind's base styles (normalize + preflight) */
+@tailwind base;
+
+/* 2. Tailwind's component classes (buttons, forms, etc.) */
+@tailwind components;
+
+/* 3. Tailwind's utility classes (spacing, colors, flex, grid, etc.) */
+@tailwind utilities;
+
+/* 4. Optional: Custom styles can go below */
+body {
+  font-family: 'Inter', sans-serif;
 }
