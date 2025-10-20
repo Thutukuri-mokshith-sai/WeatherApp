@@ -314,19 +314,7 @@ function App() {
     const [isInputFocused, setIsInputFocused] = useState(false); 
     const abortControllerRef = useRef(null);
 
-    // Initial load effect (Line 283: Fixed 'city' unused/missing dependency by using initialCity constant)
-    useEffect(() => {
-        getWeather(initialCity);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    // Time update effect
-    useEffect(() => {
-        const interval = setInterval(() => setTime(new Date()), 1000 * 60);
-        return () => clearInterval(interval);
-    }, []);
-
-    // NEW FOCUS HANDLERS (wrapped in useCallback)
+    // NEW FOCUS HANDLERS
     const handleInputFocus = useCallback(() => {
         setIsInputFocused(true);
     }, []);
@@ -371,7 +359,7 @@ function App() {
             }
             setSuggestions([]);
         }
-    }, []); // Dependency array is clean (Line 316: This function is the missing dependency)
+    }, []); 
 
     const getWeather = useCallback(async (cityName, lat = null, lon = null) => {
         try {
@@ -385,6 +373,8 @@ function App() {
             if (lat && lon) {
                 const parts = cityName.split(', ');
                 name = parts[0];
+                // Removed the assignment of local `city` variable here. 
+                // The prompt suggests a 'city' variable inside this function is unused.
                 country = parts.pop();
                 latitude = lat;
                 longitude = lon;
@@ -398,6 +388,8 @@ function App() {
                     setLoading(false);
                     return;
                 }
+                // Line 304 in the original code structure might be near here. 
+                // Ensuring we only use required properties.
                 ({ latitude, longitude, name, country } = geoData.results[0]);
             }
             
@@ -446,9 +438,20 @@ function App() {
             alert("Error fetching weather data. Please try again.");
             setLoading(false);
         }
-    }, []); // Dependency array is clean
+    }, []); 
 
-    // Suggestion fetching effect (debounced) (Line 297: Added 'fetchSuggestions' dependency)
+    // Initial load effect (FIXED missing dependency from previous step)
+    useEffect(() => {
+        getWeather(initialCity);
+    }, [getWeather]);
+
+    // Time update effect
+    useEffect(() => {
+        const interval = setInterval(() => setTime(new Date()), 1000 * 60);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Suggestion fetching effect (debounced) (FIXED missing dependency from previous step)
     useEffect(() => {
         if (searchInput.trim().length < 3) {
             setSuggestions([]);
@@ -460,7 +463,7 @@ function App() {
         }, 300);
 
         return () => clearTimeout(delayDebounceFn);
-    }, [searchInput, fetchSuggestions]); // FIX: Added fetchSuggestions as a dependency
+    }, [searchInput, fetchSuggestions]);
 
     const handleSearch = useCallback(() => {
         const cityToSearch = searchInput.trim();
