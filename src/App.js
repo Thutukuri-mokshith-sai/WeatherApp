@@ -232,48 +232,69 @@ const HourlyForecast = React.memo(({ hourly, unit }) => (
 /**
  * Renders the search bar, suggestions, and action buttons.
  */
-const SearchBar = React.memo(({ searchInput, setSearchInput, suggestions, handleSearch, handleSuggestionClick, fetchCurrentLocationWeather }) => (
-    <div className="flex flex-col sm:flex-row justify-center gap-4 relative z-20">
-        <div className="relative w-full sm:w-96">
-            <input
-                type="text"
-                placeholder="Search for your preferred city..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                className="px-5 py-3 w-full rounded-full text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-blue-400 shadow-2xl transition duration-500 border border-transparent hover:border-blue-300"
-            />
-            {suggestions.length > 0 && (
-                <ul className="absolute top-full mt-2 w-full bg-white rounded-xl shadow-2xl overflow-hidden text-gray-900 border border-gray-200 animate-slide-down">
-                    {suggestions.map((s, i) => (
-                        <li
-                            key={i}
-                            onClick={() => handleSuggestionClick(s)}
-                            className="px-4 py-3 cursor-pointer hover:bg-blue-50 transition duration-200 text-sm truncate border-b border-gray-100 last:border-b-0 flex items-center"
-                        >
-                            <i className="bi bi-pin-map-fill mr-2 text-blue-500"></i>
-                            {s.name}
-                        </li>
-                    ))}
-                </ul>
-            )}
+const SearchBar = React.memo(({ 
+    searchInput, 
+    setSearchInput, 
+    suggestions, 
+    handleSearch, 
+    handleSuggestionClick, 
+    fetchCurrentLocationWeather,
+    // NEW PROPS: Focus/Blur handlers and state
+    handleInputFocus,
+    handleInputBlur,
+    isInputFocused 
+}) => {
+    // Determine if the dropdown should be visible: only if focused AND there are suggestions
+    const showSuggestions = isInputFocused && suggestions.length > 0;
+
+    return (
+        <div className="flex flex-col sm:flex-row justify-center gap-4 relative z-20">
+            <div className="relative w-full sm:w-96">
+                <input
+                    type="text"
+                    placeholder="Search for your preferred city..."
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    // ATTACH FOCUS HANDLERS
+                    onFocus={handleInputFocus} 
+                    onBlur={handleInputBlur}
+                    className="px-5 py-3 w-full rounded-full text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-blue-400 shadow-2xl transition duration-500 border border-transparent hover:border-blue-300"
+                />
+                
+                {/* Conditionally render based on the 'showSuggestions' flag */}
+                {showSuggestions && (
+                    <ul className="absolute top-full mt-2 w-full bg-white rounded-xl shadow-2xl overflow-hidden text-gray-900 border border-gray-200 animate-slide-down">
+                        {suggestions.map((s, i) => (
+                            <li
+                                key={i}
+                                onClick={() => handleSuggestionClick(s)}
+                                className="px-4 py-3 cursor-pointer hover:bg-blue-50 transition duration-200 text-sm truncate border-b border-gray-100 last:border-b-0 flex items-center"
+                            >
+                                <i className="bi bi-pin-map-fill mr-2 text-blue-500"></i>
+                                {s.name}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+            <div className="flex gap-3">
+                <button
+                    onClick={handleSearch}
+                    className="px-6 py-3 rounded-full bg-green-500 hover:bg-green-600 text-white font-bold shadow-xl transition transform hover:scale-105 active:scale-95 duration-200 flex items-center justify-center space-x-1"
+                >
+                    <i className="bi bi-search"></i> <span className="hidden sm:inline">Search</span>
+                </button>
+                <button
+                    onClick={fetchCurrentLocationWeather}
+                    className="px-6 py-3 rounded-full bg-blue-500 hover:bg-blue-600 text-white font-bold shadow-xl transition transform hover:scale-105 active:scale-95 duration-200 flex items-center justify-center space-x-1"
+                >
+                    <i className="bi bi-geo-alt-fill"></i> <span className="hidden sm:inline">Current Location</span>
+                </button>
+            </div>
         </div>
-        <div className="flex gap-3">
-            <button
-                onClick={handleSearch}
-                className="px-6 py-3 rounded-full bg-green-500 hover:bg-green-600 text-white font-bold shadow-xl transition transform hover:scale-105 active:scale-95 duration-200 flex items-center justify-center space-x-1"
-            >
-                <i className="bi bi-search"></i> <span className="hidden sm:inline">Search</span>
-            </button>
-            <button
-                onClick={fetchCurrentLocationWeather}
-                className="px-6 py-3 rounded-full bg-blue-500 hover:bg-blue-600 text-white font-bold shadow-xl transition transform hover:scale-105 active:scale-95 duration-200 flex items-center justify-center space-x-1"
-            >
-                <i className="bi bi-geo-alt-fill"></i> <span className="hidden sm:inline">Current Location</span>
-            </button>
-        </div>
-    </div>
-));
+    );
+});
 
 // --- MAIN APP COMPONENT ---
 
@@ -289,33 +310,34 @@ function App() {
     const [time, setTime] = useState(new Date());
     const [suggestions, setSuggestions] = useState([]);
     const [unit, setUnit] = useState('C');
+    // NEW STATE TO MANAGE INPUT FOCUS
+    const [isInputFocused, setIsInputFocused] = useState(false); 
     const abortControllerRef = useRef(null);
 
-    // Initial load and time update effects remain the same
+    // Initial load effect (Line 283: Fixed 'city' unused/missing dependency by using initialCity constant)
     useEffect(() => {
         getWeather(initialCity);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Time update effect
     useEffect(() => {
         const interval = setInterval(() => setTime(new Date()), 1000 * 60);
         return () => clearInterval(interval);
     }, []);
 
-    // Suggestion fetching effect (debounced) remains the same
-    useEffect(() => {
-        if (searchInput.trim().length < 3) {
-            setSuggestions([]);
-            return;
-        }
+    // NEW FOCUS HANDLERS (wrapped in useCallback)
+    const handleInputFocus = useCallback(() => {
+        setIsInputFocused(true);
+    }, []);
 
-        const delayDebounceFn = setTimeout(() => {
-            fetchSuggestions(searchInput);
-        }, 300);
+    const handleInputBlur = useCallback(() => {
+        setTimeout(() => {
+            setIsInputFocused(false);
+        }, 150); 
+    }, []);
 
-        return () => clearTimeout(delayDebounceFn);
-    }, [searchInput]);
-
-    // Handlers (modified to be wrapped in useCallback for ideal performance)
+    // Handlers (wrapped in useCallback for ideal performance)
 
     const fetchSuggestions = useCallback(async (query) => {
         if (abortControllerRef.current) {
@@ -349,25 +371,24 @@ function App() {
             }
             setSuggestions([]);
         }
-    }, []);
+    }, []); // Dependency array is clean (Line 316: This function is the missing dependency)
 
     const getWeather = useCallback(async (cityName, lat = null, lon = null) => {
         try {
             setLoading(true);
             setWeather(null);
             setSuggestions([]);
+            setIsInputFocused(false); 
 
             let latitude, longitude, name, country;
 
             if (lat && lon) {
-                // If coordinates are provided, use them directly (for suggestions/geolocation)
                 const parts = cityName.split(', ');
                 name = parts[0];
                 country = parts.pop();
                 latitude = lat;
                 longitude = lon;
             } else {
-                // Otherwise, perform geocoding lookup
                 const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${cityName}&count=1`);
                 if (!geoRes.ok) throw new Error("Failed to fetch geocoding data");
                 const geoData = await geoRes.json();
@@ -395,8 +416,6 @@ function App() {
                 sunset: data.daily.sunset[0].split("T")[1],
             });
 
-            // 5-day forecast, skipping the current day if it's already shown in the main card.
-            // Slicing from index 0 still includes today's max/min which is fine for the daily component
             setDaily(
                 data.daily.time.slice(0, 5).map((day, i) => ({
                     date: new Date(day).toLocaleDateString("en-US", { weekday: "short" }),
@@ -406,11 +425,8 @@ function App() {
                 }))
             );
 
-            // Next 6 hours
-            const currentHourTime = data.current_weather.time.slice(0, 13); // 'YYYY-MM-DDTHH'
+            const currentHourTime = data.current_weather.time.slice(0, 13);
             const currentHourIndex = data.hourly.time.findIndex(t => t.startsWith(currentHourTime));
-            
-            // Safety check: if currentHourIndex is not found, use 0
             const startIndex = currentHourIndex >= 0 ? currentHourIndex : 0;
             
             setHourly(
@@ -430,7 +446,21 @@ function App() {
             alert("Error fetching weather data. Please try again.");
             setLoading(false);
         }
-    }, []);
+    }, []); // Dependency array is clean
+
+    // Suggestion fetching effect (debounced) (Line 297: Added 'fetchSuggestions' dependency)
+    useEffect(() => {
+        if (searchInput.trim().length < 3) {
+            setSuggestions([]);
+            return;
+        }
+
+        const delayDebounceFn = setTimeout(() => {
+            fetchSuggestions(searchInput);
+        }, 300);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchInput, fetchSuggestions]); // FIX: Added fetchSuggestions as a dependency
 
     const handleSearch = useCallback(() => {
         const cityToSearch = searchInput.trim();
@@ -454,7 +484,6 @@ function App() {
                 const lon = pos.coords.longitude;
 
                 try {
-                    // Reverse geocoding to get a readable location name
                     const geoRes = await fetch(
                         `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&count=1`
                     ).then((res) => res.json());
@@ -468,7 +497,6 @@ function App() {
                     getWeather(locationCityName, lat, lon);
                 } catch(e) {
                     console.error("Reverse geocoding error:", e);
-                    // Fallback to coordinates if reverse geocoding fails
                     getWeather("Current Location", lat, lon);
                 }
             }, (error) => {
@@ -494,6 +522,10 @@ function App() {
                     handleSearch={handleSearch} 
                     handleSuggestionClick={handleSuggestionClick} 
                     fetchCurrentLocationWeather={fetchCurrentLocationWeather}
+                    // PASS FOCUS/BLUR PROPS
+                    handleInputFocus={handleInputFocus}
+                    handleInputBlur={handleInputBlur}
+                    isInputFocused={isInputFocused}
                 />
 
                 {/* Loading spinner */}
